@@ -1,0 +1,117 @@
+### Ported 1:1 from the Dolomite liquidator subgraph schema.graphql.
+### Differences from the subgraph (see plan / README):
+###  - No @entity decorator (Envio implicit).
+###  - Entity-reference arrays with no @derivedFrom are not supported by Envio,
+###    so `borrowTokens` / `supplyTokens` / `expirationTokens` / `allUpdateTransactions`
+###    are stored as [String!]! (arrays of the referenced entity ids — same values).
+###  - All ids are namespaced with `${chainId}-` because this is a single multichain
+###    indexer and several chains share contract/user addresses.
+###  - @index directives are added on fields that liquidator/API consumers filter on
+###    (id and @derivedFrom fields are already auto-indexed).
+
+type Transaction {
+  id: ID! # `${chainId}-${transactionHash}`
+  blockNumber: BigInt! @index
+  timestamp: BigInt! @index
+}
+
+type DolomiteMargin {
+  id: ID! # `${chainId}-${dolomiteMarginAddress}`
+
+  numberOfMarkets: Int!
+
+  # risk params
+  liquidationRatio: BigDecimal!
+  liquidationReward: BigDecimal!
+  earningsRate: BigDecimal!
+  minBorrowedValue: BigDecimal!
+}
+
+type MarketRiskInfo {
+  id: ID! # `${chainId}-${tokenAddress}`
+  token: Token!
+  marginPremium: BigDecimal!
+  liquidationRewardPremium: BigDecimal!
+  isBorrowingDisabled: Boolean! @index
+}
+
+type User {
+  id: ID! # `${chainId}-${userAddress}`
+}
+
+type MarginAccount {
+  id: ID! # `${chainId}-${userAddress}-${accountNumber}`
+  user: User! @index
+  accountNumber: BigInt!
+  lastUpdatedTimestamp: BigInt! @index # Timestamp at which any token value was last updated
+  lastUpdatedBlockNumber: BigInt!
+  tokenValues: [MarginAccountTokenValue!]! @derivedFrom(field: "marginAccount")
+  # subgraph stores these as [Token!]!; Envio needs @derivedFrom for entity arrays,
+  # so we store the token ids as strings.
+  borrowTokens: [String!]!
+  supplyTokens: [String!]!
+  expirationTokens: [String!]!
+  hasBorrowValue: Boolean! @index
+  hasSupplyValue: Boolean! @index
+  hasExpiration: Boolean! @index
+}
+
+type MarginAccountTokenValue {
+  id: ID! # `${chainId}-${userAddress}-${accountNumber}-${marketId}`
+  marginAccount: MarginAccount!
+  marketId: BigInt! @index
+  token: Token! @index
+  valuePar: BigDecimal! # Par value of the user's held token. Can be negative, meaning it's borrowed funds.
+  expirationTimestamp: BigInt @index
+  expiryAddress: Bytes
+  lastUpdateTransaction: Transaction!
+  # subgraph stores this as [Transaction!]!; stored here as the transaction ids.
+  allUpdateTransactions: [String!]!
+}
+
+type Token {
+  id: ID! # `${chainId}-${tokenAddress}`
+
+  # mirrored from the smart contract
+  symbol: String! @index
+  name: String!
+  decimals: BigInt!
+
+  # Taken from DolomiteMargin
+  marketId: BigInt! @index
+}
+
+type TokenMarketIdReverseMap {
+  id: ID! # `${chainId}-${marketId}`
+  token: Token!
+}
+
+type AsyncDeposit {
+  id: ID! # `${chainId}-${outputToken address}-${key}`
+  key: Bytes!
+  marginAccount: MarginAccount! @index
+  effectiveUser: User! @index # set to the marginAccount.user or owner of an isolation mode address
+  status: String! @index # one of CREATED, DEPOSIT_EXECUTED, DEPOSIT_FAILED, DEPOSIT_CANCELLED, DEPOSIT_CANCELLED_FAILED
+  inputToken: Token!
+  inputAmount: BigDecimal!
+  outputToken: Token!
+  minOutputAmount: BigDecimal!
+  outputAmount: BigDecimal!
+  isRetryable: Boolean! @index
+}
+
+type AsyncWithdrawal {
+  id: ID! # `${chainId}-${inputToken address}-${key}`
+  key: Bytes!
+  marginAccount: MarginAccount! @index
+  effectiveUser: User! @index # set to the marginAccount.user or owner of an isolation mode address
+  status: String! @index # one of CREATED, WITHDRAWAL_EXECUTED, WITHDRAWAL_EXECUTION_FAILED, WITHDRAWAL_CANCELLED
+  inputToken: Token!
+  inputAmount: BigDecimal!
+  outputToken: Token!
+  minOutputAmount: BigDecimal!
+  outputAmount: BigDecimal!
+  isRetryable: Boolean! @index
+  isLiquidation: Boolean! @index
+  extraData: Bytes!
+}

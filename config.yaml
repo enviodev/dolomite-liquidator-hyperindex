@@ -1,0 +1,146 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: dolomite-liquidator
+description: Dolomite margin protocol liquidation indexer (1:1 port of the Dolomite liquidator subgraph)
+# Subgraph builds entity IDs from lowercase addresses (toHexString); match that exactly.
+address_format: lowercase
+
+# Transaction hash is needed for the Transaction entity id.
+field_selection:
+  transaction_fields:
+    - hash
+
+contracts:
+  - name: DolomiteMargin
+    abi_file_path: ./abis/dolomite-margin.events.json
+    events:
+      - event: LogSetEarningsRate
+      - event: LogSetLiquidationSpread
+      - event: LogSetMarginRatio
+      - event: LogSetMinBorrowedValue
+      - event: LogAddMarket
+      - event: LogRemoveMarket
+      - event: LogSetIsClosing
+      - event: LogSetMarginPremium
+      - event: LogSetSpreadPremium
+      - event: LogSetLiquidationSpreadPremium
+      - event: LogDeposit
+      - event: LogWithdraw
+      - event: LogTransfer
+      - event: LogBuy
+      - event: LogSell
+      - event: LogTrade
+      - event: LogLiquidate
+      - event: LogVaporize
+
+  - name: Expiry
+    abi_file_path: ./abis/dolomite-margin.events.json
+    events:
+      - event: ExpirySet
+
+  - name: EventEmitterRegistry
+    abi_file_path: ./abis/event-emitter-registry.events.json
+    events:
+      - event: AsyncDepositCreated
+      - event: AsyncDepositOutputAmountUpdated
+      - event: AsyncDepositExecuted
+      - event: AsyncDepositFailed
+      - event: AsyncDepositCancelled
+      - event: AsyncDepositCancelledFailed
+      - event: AsyncWithdrawalCreated
+      - event: AsyncWithdrawalOutputAmountUpdated
+      - event: AsyncWithdrawalExecuted
+      - event: AsyncWithdrawalFailed
+      - event: AsyncWithdrawalCancelled
+
+chains:
+  - id: 1 # Ethereum
+    start_block: 22753940
+    rpc:
+      - url: ${ENVIO_RPC_URL_1}
+        for: fallback
+    contracts:
+      - name: DolomiteMargin
+        address: "0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D"
+      - name: Expiry
+        address: "0x2Ae007882b91206942c70ADc833A61Ee531D8D5D"
+      - name: EventEmitterRegistry
+        address: "0x6d40138c99F6D9116F738F44A0E6751A42232486"
+
+  - id: 42161 # Arbitrum One
+    start_block: 28220369
+    rpc:
+      - url: ${ENVIO_RPC_URL_42161}
+        for: fallback
+    contracts:
+      - name: DolomiteMargin
+        address: "0x6Bd780E7fDf01D77e4d475c821f1e7AE05409072"
+      - name: Expiry
+        address: "0xDEc1ae3b570ac3c57871BBD7bFeacC807f973Bea"
+      - name: EventEmitterRegistry
+        address: "0x4BfF12773B0Dc3Cb35f174B5CD351F662018CC2F"
+
+  - id: 8453 # Base
+    start_block: 23848714
+    rpc:
+      - url: ${ENVIO_RPC_URL_8453}
+        for: fallback
+    contracts:
+      - name: DolomiteMargin
+        address: "0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D"
+      - name: Expiry
+        address: "0x2Ae007882b91206942c70ADc833A61Ee531D8D5D"
+      - name: EventEmitterRegistry
+        address: "0x6d40138c99F6D9116F738F44A0E6751A42232486"
+
+  - id: 5000 # Mantle
+    start_block: 63091469
+    rpc:
+      - url: ${ENVIO_RPC_URL_5000}
+        for: fallback
+    contracts:
+      - name: DolomiteMargin
+        address: "0xE6Ef4f0B2455bAB92ce7cC78E35324ab58917De8"
+      - name: Expiry
+        address: "0x6df6DBF5053c3771217376fb3ef7F1f5d4889a25"
+      - name: EventEmitterRegistry
+        address: "0x778CeA4cE43ba1a3eD6306CA692B8d9D3dFB827c"
+
+  - id: 1101 # Polygon zkEVM
+    start_block: 9597567
+    rpc:
+      - url: ${ENVIO_RPC_URL_1101}
+        for: fallback
+    contracts:
+      - name: DolomiteMargin
+        address: "0x836b557Cf9eF29fcF49C776841191782df34e4e5"
+      - name: Expiry
+        address: "0xb3F81b0F53CDEe755c70665923e08a8f0e81d0c3"
+      - name: EventEmitterRegistry
+        address: "0x2e9BE819D04CB62bF3816B627c9DfF819136CEc4"
+
+  - id: 80094 # Berachain
+    start_block: 160822
+    rpc:
+      - url: ${ENVIO_RPC_URL_80094}
+        for: fallback
+    contracts:
+      - name: DolomiteMargin
+        address: "0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D"
+      - name: Expiry
+        address: "0x2Ae007882b91206942c70ADc833A61Ee531D8D5D"
+      - name: EventEmitterRegistry
+        address: "0x6d40138c99F6D9116F738F44A0E6751A42232486"
+
+  # - id: 196 # X-Layer
+  #   start_block: 832938
+  #   rpc:
+  #     # X-Layer has no HyperSync endpoint, so RPC must be the primary sync source.
+  #     - url: ${ENVIO_RPC_URL_196}
+  #       for: sync
+  #   contracts:
+  #     - name: DolomiteMargin
+  #       address: "0x836b557Cf9eF29fcF49C776841191782df34e4e5"
+  #     - name: Expiry
+  #       address: "0x8B808a1fEEf1d9cdd00Fb46A19e4814e5646197C"
+  #     - name: EventEmitterRegistry
+  #       address: "0xd86233E2E53a87F0735C5643f3189cfEC07269bF"
