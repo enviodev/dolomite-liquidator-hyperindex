@@ -137,14 +137,19 @@ export async function getOrCreateTokenValue(
       expirationTimestamp: undefined,
       expiryAddress: undefined,
       lastUpdateTransaction_id: transactionId,
-      allUpdateTransactions: [],
     };
   } else {
     tokenValue = { ...existing };
   }
 
   tokenValue.lastUpdateTransaction_id = transactionId;
-  tokenValue.allUpdateTransactions = [...tokenValue.allUpdateTransactions, transactionId];
+  // One row per update instead of appending to an array field: O(1) insert
+  // regardless of how many updates this token value has ever had.
+  context.TokenValueUpdate.set({
+    id: `${id}-${transactionId}`,
+    tokenValue_id: id,
+    transaction_id: transactionId,
+  });
 
   return tokenValue;
 }
