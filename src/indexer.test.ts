@@ -109,8 +109,11 @@ describe("DolomiteMargin balance updates", () => {
     expect(account.hasBorrowValue).toBe(true);
     expect(account.supplyTokens).toEqual([]);
     expect(account.hasSupplyValue).toBe(false);
-    // Both transactions should be recorded on the token value.
-    expect(tv.allUpdateTransactions).toEqual([`${CHAIN}-0xaaaa`, `${CHAIN}-0xbbbb`]);
+    // Both transactions should be recorded as TokenValueUpdate rows on the token value.
+    const update1 = await indexer.TokenValueUpdate.getOrThrow(`${tv.id}-${CHAIN}-0xaaaa`);
+    const update2 = await indexer.TokenValueUpdate.getOrThrow(`${tv.id}-${CHAIN}-0xbbbb`);
+    expect(update1.transaction_id).toEqual(`${CHAIN}-0xaaaa`);
+    expect(update2.transaction_id).toEqual(`${CHAIN}-0xbbbb`);
   });
 });
 

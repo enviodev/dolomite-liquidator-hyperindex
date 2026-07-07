@@ -25,10 +25,17 @@ Addresses and start blocks live in `config.yaml`.
   and DGD/AAVE overrides) and the initial risk params are read over RPC through the
   Effect API (`src/effects.ts`) — HyperSync cannot read contract state. Set an RPC
   url per chain (`ENVIO_RPC_URL_<chainId>` in `.env`).
-- **Array fields.** `borrowTokens` / `supplyTokens` / `expirationTokens` /
-  `allUpdateTransactions` are stored as `[String!]!` (arrays of entity ids), because
-  Envio only allows entity arrays via `@derivedFrom`. Same values, but they resolve
-  as id strings rather than nested objects — note this for the converter.
+- **Array fields.** `borrowTokens` / `supplyTokens` / `expirationTokens` are stored
+  as `[String!]!` (arrays of entity ids), because Envio only allows entity arrays
+  via `@derivedFrom`. Same values, but they resolve as id strings rather than
+  nested objects — note this for the converter. These stay small (bounded by the
+  number of distinct tokens an account holds), so an inline array is fine.
+  `allUpdateTransactions` is different: it's unbounded (one entry per balance
+  update, ever), so it's modelled as a `TokenValueUpdate` join entity exposed via
+  `@derivedFrom` instead of an inline array — appending to an inline array here
+  would mean reading and copying the full history on every single deposit/
+  withdraw/trade/liquidation touching that position, which is O(n²) over the
+  life of an actively-traded account and was the cause of an indexer OOM crash.
 - **Preserved subgraph quirks** (for exact parity): `LogRemoveMarket` increments
   `numberOfMarkets`; `minBorrowedValue` is divided by 1e18 twice; `LogRemoveMarket`
   deletes `MarketRiskInfo` but not the reverse map.

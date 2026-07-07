@@ -65,8 +65,16 @@ type MarginAccountTokenValue {
   expirationTimestamp: BigInt @index
   expiryAddress: Bytes
   lastUpdateTransaction: Transaction!
-  # subgraph stores this as [Transaction!]!; stored here as the transaction ids.
-  allUpdateTransactions: [String!]!
+  # subgraph stores this as [Transaction!]! inline; here it's a @derivedFrom join
+  # entity (one row per update) instead of an ever-growing array field, so each
+  # update is an O(1) insert rather than a full-array copy.
+  allUpdateTransactions: [TokenValueUpdate!]! @derivedFrom(field: "tokenValue")
+}
+
+type TokenValueUpdate {
+  id: ID! # `${marginAccountTokenValueId}-${transactionId}`
+  tokenValue: MarginAccountTokenValue! @index
+  transaction: Transaction!
 }
 
 type Token {
